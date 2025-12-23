@@ -1,40 +1,122 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-    <meta charset="utf-8">
-    <title>levantenseee!!!</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <meta charset="utf-8">
+  <title>AR</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+
+  <style>
+    #overlay {
+      position: absolute;
+      z-index: 999;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: white;
+      font-family: sans-serif;
+    }
+    #start-btn {
+      padding: 15px 30px;
+      font-size: 20px;
+      background: #ef2d5e;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+  </style>
+
+  <script>
+    // Component จัดการการคลิกและเสียง
+    AFRAME.registerComponent('click-handler', {
+      init: function () {
+        var el = this.el;
+        el.addEventListener('click', function (evt) {
+          // สั่งเล่นเสียง
+          el.components.sound.stopSound(); 
+          el.components.sound.playSound(); 
+
+          // Animation ขยาย
+          let currentScale = el.getAttribute('scale');
+          el.setAttribute('scale', { x: currentScale.x * 1.2, y: currentScale.y * 1.2, z: currentScale.z * 1.2 });
+          
+          setTimeout(() => {
+             el.setAttribute('scale', {x: 0.5, y: 0.5, z: 0.5});
+          }, 200);
+        });
+      }
+    });
+
+    // ฟังก์ชันสำหรับปุ่ม Start (หัวใจสำคัญของ iOS)
+    window.addEventListener('load', () => {
+      const overlay = document.getElementById('overlay');
+      const startBtn = document.getElementById('start-btn');
+      
+      startBtn.addEventListener('click', () => {
+        // 1. ซ่อน Overlay
+        overlay.style.display = 'none';
+        
+        // 2. ปลดล็อก Audio Context ของ A-Frame ทันทีที่กดปุ่มนี้
+        const entity = document.querySelector('[sound]');
+        if (entity && entity.components.sound) {
+           // เล่นเสียงเบาๆ 1 ครั้งเพื่อกระตุ้นระบบ iOS
+           entity.components.sound.playSound();
+           entity.components.sound.stopSound();
+        }
+        
+        // ถ้า AudioContext ยังถูกระงับ (Suspended) ให้สั่ง Resume
+        if (AFRAME.scenes[0].audioListener && AFRAME.scenes[0].audioListener.context.state === 'suspended') {
+            AFRAME.scenes[0].audioListener.context.resume();
+        }
+      });
+    });
+  </script>
 </head>
 
-<body style="margin: 0; overflow: hidden;">
-    <a-scene 
-        embedded 
-        vr-mode-ui="enabled: false" 
-        arjs="sourceType: webcam; debugUIEnabled: false;">
+<body style="margin:0; overflow:hidden;">
 
-        <a-assets>
-            <a-asset-item id="externalModel" src="scene.gltf"></a-asset-item>
-            <audio id="clickSound" src="levantensee.mp3" preload="auto"></audio>
-        </a-assets>
+  <div id="overlay">
+    <div>Please turn on Ringer (Side Switch)</div>
+    <button id="start-btn">TAP TO START</button>
+  </div>
 
-        <a-entity 
-            id="ar-object"
-            gltf-model="#externalModel" 
-            scale="0.25 0.25 0.25" 
-            position="0 1.5 -2" 
-            class="clickable"
-            sound="src: #clickSound; on: click"> 
-        </a-entity>
+  <a-scene
+    vr-mode-ui="enabled: false"
+    arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
+    renderer="logarithmicDepthBuffer: true;"
+  >
 
-        <a-camera>
-            <a-cursor
-                fuse="false"
-                raycaster="objects: .clickable"
-                rayOrigin="mouse">
-            </a-cursor>
-        </a-camera>
+    <a-assets>
+      <a-asset-item id="sceneModel" src="scene.gltf"></a-asset-item>
+      <audio id="clickSoundSrc" src="levantensee.mp3" preload="auto"></audio>
+    </a-assets>
 
-    </a-scene>
+    <a-entity
+      gltf-model="#sceneModel"
+      scale="0.5 0.5 0.5"
+      position="0 1.5 -1"
+      rotation="0 0 0"
+      class="clickable"
+      sound="src: #clickSoundSrc; on: click; poolSize: 5; positional: false;"
+      click-handler
+    >
+    </a-entity>
+
+    <a-camera rotation-reader look-controls wasd-controls>
+      <a-entity
+        cursor="fuse: false; rayOrigin: mouse;"
+        raycaster="objects: .clickable"
+        position="0 0 -1"
+        visible="false">
+      </a-entity>
+    </a-camera>
+
+  </a-scene>
 </body>
 </html>
